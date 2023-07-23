@@ -1,13 +1,19 @@
 import requests
 import subprocess
+from pathlib import Path
 
 from connector.custom_exceptions import NetworkNotFound
 
+CONFIGS_DIR = Path(__file__).parent.joinpath("network_configs").as_posix()
+DEFAULT_CONFIG = Path("config_sample").with_suffix(".txt").as_posix()
+
 
 class Connector:
-    def __init__(self,
-                 config_dir: str = 'network_configs',
-                 config_sample: str = 'config_sample.txt'):
+    def __init__(
+            self,
+            config_dir: str = CONFIGS_DIR,
+            config_sample: str = DEFAULT_CONFIG,
+    ):
 
         self.config_dir = config_dir
         self.config_sample = config_sample
@@ -17,7 +23,7 @@ class Connector:
 
     @property
     def known_networks(self) -> list:
-        
+
         return list(
             set(self.available_networks.keys()).intersection(
                 set(self.list_known_networks())
@@ -50,8 +56,8 @@ class Connector:
         if not isinstance(networks, str):
             networks = str(networks)
 
-        return [n.split(':')[-1].strip('\\r ') 
-                for n in networks.split('\\n') 
+        return [n.split(':')[-1].strip('\\r ')
+                for n in networks.split('\\n')
                 if "User Profile" in n]
 
     @staticmethod
@@ -61,7 +67,7 @@ class Connector:
             _ = requests.head(url, timeout=timeout)
             return True
         except requests.ConnectionError:
-            return False 
+            return False
 
     @staticmethod
     def request_password() -> str:
@@ -73,7 +79,7 @@ class Connector:
         answ = input("Do You Allow to Connect to Open Network? [y/n] ")
         if answ.lower() in ['y', 'yes']:
             return True
-        
+
     @staticmethod
     def get_config(network_name: str,
                    password: str,
@@ -83,12 +89,12 @@ class Connector:
 
         return config.format(network=network_name,
                              password=password)
-    
+
     @staticmethod
     def save_config(network_name: str,
                     config: str,
                     config_dir: str) -> str:
-        
+
         file_name = f'{config_dir}/{network_name}.xml'
         with open(file_name, 'w') as f:
             f.write(config)
@@ -98,9 +104,9 @@ class Connector:
 
         question_text = f'Following Networks are Available\n{", ".join(self.available_networks.keys())}'
         action_text = 'Type Your Preferred Network or Hit Enter: '
-        
+
         user_answ = input(question_text + '\n' + action_text)
-        
+
         return user_answ
 
     def list_available_networks(self) -> dict:
@@ -109,11 +115,11 @@ class Connector:
                                                         "wlan",
                                                         "show",
                                                         "networks"])
-            
+
             return self.design_std_output(
                 visible_networks
-                )
-        
+            )
+
         except subprocess.CalledProcessError:
             print('MAKE SURE WIFI IS TURNED ON')
             exit()
@@ -123,12 +129,12 @@ class Connector:
                                                   "wlan",
                                                   "show",
                                                   "profiles"])
-        
+
         return self.design_known_ouput(known_networks)
-    
+
     def list_open_networks(self) -> list:
         return [n[0] for n in self.available_networks.items() if n[1]['Authentication'] == "Open"]
-    
+
     def add_network_profile(self,
                             network_name: str) -> None:
         password = self.request_password()
@@ -138,7 +144,7 @@ class Connector:
         config_filename = self.save_config(network_name,
                                            config,
                                            self.config_dir)
-        
+
         try:
 
             _ = subprocess.check_output(["netsh",
@@ -146,7 +152,7 @@ class Connector:
                                          "add",
                                          "profile",
                                          f'filename="{config_filename}"'])
-    
+
         except:
             print('PASSWORD IS INCORRECT. EXITING...')
             exit()
@@ -165,7 +171,7 @@ class Connector:
                                            "wlan",
                                            "connect",
                                            f"name={network_name}"])
-        
+
         if "success" in str(message):
             print(f'CONNECTED TO "{network_name}"')
             exit()
