@@ -1,7 +1,7 @@
 import requests
 import subprocess
 
-from custom_exceptions import NetworkNotFound
+from connector.custom_exceptions import NetworkNotFound
 
 
 class Connector:
